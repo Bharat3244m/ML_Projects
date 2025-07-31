@@ -7,6 +7,7 @@ from src.logger import logging
 from sklearn.model_selection import train_test_split 
 from dataclasses import dataclass
 from src.components.data_transformation import DataTransformationConfig, DataTransformation
+from src.components.model_trainer import ModelTrainerConfig, ModelTrainer
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 @dataclass
@@ -47,5 +48,9 @@ if __name__ == "__main__":
     logging.info("Data ingestion completed successfully")
     
     data_transformation = DataTransformation()
-    data_transformation.initiate_data_transformation(train_data, test_data)
+    train_array, test_array,preprocessor_path = data_transformation.initiate_data_transformation(train_data, test_data)
     logging.info("Data transformation completed successfully")
+    
+    model_trainer = ModelTrainer()
+    print(model_trainer.train_model(train_array, test_array))
+    logging.info("Model training completed successfully")

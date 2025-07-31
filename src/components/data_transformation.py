@@ -1,4 +1,4 @@
-from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder # type: ignore
+from sklearn.preprocessing import StandardScaler, OneHotEncoder # type: ignore
 import os
 import numpy as np   
 import pandas as pd  
