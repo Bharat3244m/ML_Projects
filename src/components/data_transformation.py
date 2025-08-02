@@ -17,8 +17,7 @@ class DataTransformationConfig:
     preprocessor_obj_file_path = os.path.join('artifacts', 'preprocessor.pkl')
     transformed_data_file_path = os.path.join('artifacts', 'transformed_data.csv')
     class_labels_file_path = os.path.join('artifacts', 'class_labels.csv')
-    class_labels_file_path = os.path.join('artifacts', 'class_labels.csv')
-    
+
 class DataTransformation:
     def __init__(self):
         self.transformation_config = DataTransformationConfig()
@@ -33,6 +32,26 @@ class DataTransformation:
             # Identify numerical and categorical columns
             numerical_cols = train_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
             categorical_cols = train_df.select_dtypes(include=['object']).columns.tolist()
+
+            
+            train_df.columns = train_df.columns.str.strip()
+            test_df.columns = test_df.columns.str.strip()
+
+
+            target_column = 'math_score'
+            
+            # Check if target_column exists
+            if target_column not in train_df.columns or target_column not in test_df.columns:
+                raise CustomException(f"{target_column} not found in dataset columns", sys) # type: ignore
+            
+            X_train = train_df.drop(columns=[target_column])
+            y_train = train_df[target_column]
+            X_test = test_df.drop(columns=[target_column])
+            y_test = test_df[target_column]
+            
+            # 🚨 Recalculate cols AFTER dropping target
+            numerical_cols = X_train.select_dtypes(include=['int64', 'float64']).columns.tolist()
+            categorical_cols = X_train.select_dtypes(include=['object']).columns.tolist()
 
             # Define preprocessing for numerical and categorical data
             numerical_transformer = Pipeline(steps=[
@@ -52,14 +71,10 @@ class DataTransformation:
                     ('cat', categorical_transformer, categorical_cols)
                 ]
             )
-
-            target_column = 'math_score'
-            y_train = train_df[target_column]
-            X_train = train_df
-            y_test = test_df[target_column]
-            X_test = test_df
             
             logging.info("Preprocessing pipelines created for train and test data")
+            
+            
             
             X_train_scaled = preprocessor.fit_transform(X_train)
             X_test_scaled = preprocessor.transform(X_test)
