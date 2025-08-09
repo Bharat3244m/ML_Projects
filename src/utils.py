@@ -7,6 +7,7 @@ from src.exception import CustomException
 import pickle
 from sklearn.metrics import r2_score
 from sklearn.model_selection import GridSearchCV
+import dill
 
 def save_object(file_path, obj):
     """
@@ -52,3 +53,50 @@ def evaluate_models(X_train, y_train,X_test,y_test,models,param):
     except Exception as e:
         logging.error(f"Error evaluating model: {e}")
         raise CustomException(e, sys) # type: ignore
+
+
+def load_object(file_path):
+    """
+    Load an object from a file using pickle with comprehensive version compatibility handling.
+    """
+    # List of methods to try for loading the object
+    load_methods = [
+        ('dill', lambda f: dill.load(f)),
+        ('pickle', lambda f: pickle.load(f))
+    ]
+    
+    for method_name, load_func in load_methods:
+        try:
+            with open(file_path, 'rb') as file:
+                obj = load_func(file)
+            logging.info(f"Object loaded successfully using {method_name} from {file_path}")
+            return obj
+        except (ModuleNotFoundError, ImportError, AttributeError) as e:
+            # Handle scikit-learn version compatibility issues
+            error_msg = str(e).lower()
+            if any(keyword in error_msg for keyword in ['_loss', 'sklearn', 'scikit', 'version', 'compatibility']):
+                logging.warning(f"Detected version compatibility issue with {method_name}. Trying next method...")
+                continue
+            else:
+                logging.warning(f"Error with {method_name}: {e}. Trying next method...")
+                continue
+        except Exception as e:
+            logging.warning(f"Unexpected error with {method_name}: {e}. Trying next method...")
+            continue
+    
+    # If all methods fail, provide a detailed error message
+    error_msg = f"""
+    Failed to load object from {file_path}. This is likely due to:
+    1. Scikit-learn version incompatibility between training and inference environments
+    2. Missing dependencies
+    3. Corrupted model file
+    
+    Solutions:
+    1. Retrain the model with the current scikit-learn version
+    2. Install the same scikit-learn version used during training
+    3. Check if all required dependencies are installed
+    
+    Current error: {str(e)}
+    """
+    logging.error(error_msg)
+    raise CustomException(error_msg, sys) # type: ignore
