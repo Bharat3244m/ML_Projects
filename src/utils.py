@@ -65,6 +65,8 @@ def load_object(file_path):
         ('pickle', lambda f: pickle.load(f))
     ]
     
+    last_error = None
+    
     for method_name, load_func in load_methods:
         try:
             with open(file_path, 'rb') as file:
@@ -76,12 +78,15 @@ def load_object(file_path):
             error_msg = str(e).lower()
             if any(keyword in error_msg for keyword in ['_loss', 'sklearn', 'scikit', 'version', 'compatibility']):
                 logging.warning(f"Detected version compatibility issue with {method_name}. Trying next method...")
+                last_error = e
                 continue
             else:
                 logging.warning(f"Error with {method_name}: {e}. Trying next method...")
+                last_error = e
                 continue
         except Exception as e:
             logging.warning(f"Unexpected error with {method_name}: {e}. Trying next method...")
+            last_error = e
             continue
     
     # If all methods fail, provide a detailed error message
@@ -96,7 +101,7 @@ def load_object(file_path):
     2. Install the same scikit-learn version used during training
     3. Check if all required dependencies are installed
     
-    Current error: {str(e)}
+    Current error: {str(last_error) if last_error else 'Unknown error'}
     """
     logging.error(error_msg)
     raise CustomException(error_msg, sys) # type: ignore
